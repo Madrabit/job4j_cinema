@@ -9,10 +9,7 @@ import ru.job4j.cinema.model.Place;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 /**
@@ -29,7 +26,7 @@ public class PsqlStore implements Store {
     PsqlStore() {
         Properties cfg = new Properties();
         try (BufferedReader io = new BufferedReader(
-                new FileReader("db.properties")
+                new FileReader("db_cinema.properties")
         )) {
             cfg.load(io);
         } catch (Exception e) {
@@ -120,6 +117,7 @@ public class PsqlStore implements Store {
         }
         return customers;
     }
+
     @Override
     public void makePurchase(Customer customer, List<String> seats) {
         try (Connection cn = pool.getConnection();
@@ -132,9 +130,35 @@ public class PsqlStore implements Store {
                 if (id.next()) {
                     customer.setId(id.getInt(1));
                 }
+
             }
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
+        blockSeat(customer.getId(), seats);
+    }
+
+    private void blockSeat(int id, List<String> seats) {
+        try (Connection connection = pool.getConnection();
+             PreparedStatement ps = connection.prepareStatement("UPDATE halls SET busy = true, accounts_id = ? "
+                     + "WHERE id =  ? ")) {
+            try {
+                connection.setAutoCommit(false);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            for (String seat : seats) {
+                ps.setInt(1, id);
+                ps.setInt(2, Integer.parseInt(seat));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            ps.close();
+            connection.commit();
+            connection.setAutoCommit(true);
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+
     }
 }

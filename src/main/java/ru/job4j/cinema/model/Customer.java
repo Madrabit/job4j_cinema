@@ -1,12 +1,12 @@
 package ru.job4j.cinema.model;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
  * @author madrabit on 28.05.2020
  * @version 1$
  * @since 0.1
+ * Customer in accounts table db.
  */
 public class Customer {
     private int id;

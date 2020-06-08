@@ -1,7 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -43,24 +42,6 @@
             </tr>
             </thead>
             <tbody id="board">
-            <%--            <tr>--%>
-            <%--                <th>1</th>--%>
-            <%--                <td><input type="checkbox" name="seat" value="1.1"> Ряд 1, Место 1</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="1.2"> Ряд 1, Место 2</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="1.3"> Ряд 1, Место 3</td>--%>
-            <%--            </tr>--%>
-            <%--            <tr>--%>
-            <%--                <th>2</th>--%>
-            <%--                <td><input type="checkbox" name="seat" value="2.1"> Ряд 2, Место 1</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="2.2"> Ряд 2, Место 2</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="2.3"> Ряд 2, Место 3</td>--%>
-            <%--            </tr>--%>
-            <%--            <tr>--%>
-            <%--                <th>3</th>--%>
-            <%--                <td><input type="checkbox" name="seat" value="3.1"> Ряд 3, Место 1</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="3.2"> Ряд 3, Место 2</td>--%>
-            <%--                <td><input type="checkbox" name="seat" value="3.3"> Ряд 3, Место 3</td>--%>
-            <%--            </tr>--%>
             </tbody>
         </table>
         <div class="row float-right">
@@ -69,8 +50,16 @@
     </div>
 </div>
 <script>
+    /**
+     * List of input-seats.
+     * @type {NodeListOf<Element>}
+     */
     let seats = document.querySelectorAll('input[name="seat"]')
     let jsn;
+    /**
+     * Return all seat from json and render them.
+     * Every 30 seconds page auto-reload.
+     */
     window.onload = function () {
         fetch('http://localhost:8081/cinema/hall',
             {
@@ -82,10 +71,7 @@
             }
         ).then(response => response.json())
             .then(data => {
-                // Array.from(seats).map( e => {
                 jsn = data.busyPlaces;
-                // for (let row in data.busyPlaces) {
-                let rows = jsn.length / 3;
                 for (let i = 0, count = 0; i < 3; i++) {
                     let tr = document.createElement("tr");
                     let td = document.createElement("td");
@@ -97,7 +83,7 @@
                         let input = document.createElement('input');
                         input.type = 'checkbox';
                         input.name = 'seat';
-                        input.value = seat.row + '.' + seat.place;
+                        input.value = seat.row + '/' + seat.place + '/' + seat.id;
                         input.disabled = seat.busy;
                         td.appendChild(document.createTextNode('Ряд: ' + seat.row + ' Место: ' + seat.place + ' Цена: ' + seat.price + ' '))
                         td.appendChild(input);
@@ -105,43 +91,31 @@
                     }
                     document.querySelector('#board').appendChild(tr);
                 }
-
-
-                // let seat = e.split('.');
-                // li.appendChild(document.createTextNode('Ряд: ' + seat[0] + ' Место: ' + seat[1]));
-                // ul.appendChild(li);
-                //
-                // if (e.value == row + '.' + data.busyPlaces[row]) {
-                //     e.disabled = true;
-                // }
-                // }
-
             }).catch(error => console.error(error))
-        // })
-
+        setTimeout('location.reload (true)', 30000);
     }
+    /**
+     * Submit button.
+     * @type {HTMLButtonElement}
+     */
     let btnPay = document.querySelector("button");
+    /**
+     * Save tickets to coockies and redirect to payment page.
+     */
     btnPay.addEventListener("click", () => {
         seats = document.querySelectorAll('input[name="seat"]')
-        let occupied = [];
         let price = 0;
         let i = 0;
         Array.from(seats).map(e => {
-            if (e.checked == true) {
-                // occupied.push(e.value);
-                let splited = e.value.split('.');
+            if (e.checked === true) {
                 document.cookie = 'ticket-' + i++ + "=" + e.value;
                 price += 500;
             }
         });
-        let jsonStr = JSON.stringify(occupied);
-        // document.cookie = 'seats=' + jsonStr;
         document.cookie = 'seatsLength=' + i;
         document.cookie = 'price=' + price;
         window.location.href = "${pageContext.servletContext.contextPath}/payment.jsp"
     })
-
-
 </script>
 </body>
 </html>

@@ -15,7 +15,7 @@ public class PsqlMain {
 
         Store store = PsqlStore.instOf();
 
-        List list = new ArrayList<>();
+        List<String> list = new ArrayList<>();
         store.makePurchase(new Customer("Mr Twister111123123123", 3222233), list);
         List<Customer> customers = store.findAllCustomers();
 

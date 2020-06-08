@@ -6,12 +6,16 @@ import java.util.Objects;
  * @author madrabit on 28.05.2020
  * @version 1$
  * @since 0.1
+ * Seat in cinema.
  */
 public class Place {
     private int id;
     private int row;
     private int place;
     private int price;
+    /**
+     * Busy seat or not.
+     */
     private boolean busy;
 
     public Place(int id, int row, int place, int price, boolean busy) {
