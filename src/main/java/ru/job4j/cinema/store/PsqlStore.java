@@ -74,7 +74,7 @@ public class PsqlStore implements Store {
     public List<Place> findAllPlaces() {
         List<Place> places = new LinkedList<>();
         try (Connection cn = pool.getConnection();
-             PreparedStatement ps = cn.prepareStatement("SELECT * FROM halls")
+             PreparedStatement ps = cn.prepareStatement("SELECT * FROM halls ORDER BY ID")
         ) {
             try (ResultSet it = ps.executeQuery()) {
                 while (it.next()) {
@@ -136,29 +136,34 @@ public class PsqlStore implements Store {
             LOG.error(e.getMessage(), e);
         }
         blockSeat(customer.getId(), seats);
+
     }
 
     private void blockSeat(int id, List<String> seats) {
         try (Connection connection = pool.getConnection();
-             PreparedStatement ps = connection.prepareStatement("UPDATE halls SET busy = true, accounts_id = ? "
-                     + "WHERE id =  ? ")) {
-            try {
-                connection.setAutoCommit(false);
-            } catch (SQLException e) {
-                e.printStackTrace();
+            PreparedStatement forUpdateLock = connection.prepareStatement("SELECT * FROM halls WHERE id = ? FOR UPDATE")) {
+            connection.setAutoCommit(false);
+            forUpdateLock.setInt(1, id);
+            ResultSet rs = forUpdateLock.executeQuery();
+            while (rs.next()) {
+                int lockedId = rs.getInt(1);
+                try (PreparedStatement update = connection.prepareStatement("UPDATE halls SET busy = true, accounts_id = ? WHERE id =  ? AND busy = false")) {
+                    for (String seat : seats) {
+                        update.setInt(1, lockedId);
+                        update.setInt(2, Integer.parseInt(seat));
+                        update.addBatch();
+                    }
+                    if (update.executeUpdate() == 1) {
+                        connection.commit();
+                        connection.setAutoCommit(true);
+                    }
+                    else {
+                        connection.rollback();
+                    }
+                }
             }
-            for (String seat : seats) {
-                ps.setInt(1, id);
-                ps.setInt(2, Integer.parseInt(seat));
-                ps.addBatch();
-            }
-            ps.executeBatch();
-            ps.close();
-            connection.commit();
-            connection.setAutoCommit(true);
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
-
     }
 }
